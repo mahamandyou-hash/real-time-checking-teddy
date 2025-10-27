@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TeddySense — Hackathon Ready</title>
+  <style>
+    :root{
+      --bg-start: #FFE5F1;
+      --bg-end: #E8F4FD;
+      --surface: #FFFFFF;
+      --text: #333333;
+      --primary: #87CEEB;
+      --secondary: #98FB98;
+      --accent: #FF69B4;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;padding:20px;font-family: 'Comic Sans MS', cursive, sans-serif;
+      min-height:100vh;display:flex;align-items:center;justify-content:center;
+      background:linear-gradient(135deg,var(--bg-start) 0%,var(--bg-end) 100%);
+      color:var(--text);
+    }
+    .container{max-width:820px;width:100%;background:var(--surface);border-radius:20px;padding:24px;box-shadow:0 12px 40px rgba(0,0,0,0.12);display:grid;grid-template-columns:360px 1fr;gap:20px;align-items:start}
+
+    /* Teddy */
+    .teddy-wrap{text-align:center}
+    .teddy{width:280px;height:280px;margin:0 auto;position:relative;cursor:pointer;transition:transform .25s ease}
+    .bear-face{width:100%;height:100%;background:#D2691E;border-radius:50%;position:relative;box-shadow:0 8px 25px rgba(0,0,0,0.18)}
+    .ear{width:78px;height:78px;background:#D2691E;border-radius:50%;position:absolute;top:-18px}
+    .ear.left{left:28px}
+    .ear.right{right:28px}
+    .ear-inner{width:36px;height:36px;background:#F4A460;border-radius:50%;position:absolute;top:20px;left:20px}
+    .eyes{position:absolute;top:85px;left:50%;transform:translateX(-50%);display:flex;gap:36px}
+    .eye{width:28px;height:28px;background:black;border-radius:50%;animation:blink 3s infinite}
+    .nose{width:22px;height:18px;background:black;border-radius:50%;position:absolute;top:130px;left:50%;transform:translateX(-50%)}
+    .mouth{width:58px;height:30px;border:3px solid black;border-top:none;border-radius:0 0 40px 40px;position:absolute;top:155px;left:50%;transform:translateX(-50%)}
+
+    /* animated states */
+    @keyframes dance{0%,100%{transform:rotate(0) scale(1)}25%{transform:rotate(-6deg) scale(1.06)}75%{transform:rotate(6deg) scale(1.06)}}
+    @keyframes hug{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+    @keyframes angry{0%,100%{transform:scale(1)}25%{transform:scale(1.06) rotate(-2deg)}75%{transform:scale(1.06) rotate(2deg)}}
+    .dancing{animation:dance .9s ease-in-out 4}
+    .hugging{animation:hug .9s ease-in-out 3}
+    .angry{animation:angry .5s ease-in-out 6}
+
+    .speech-bubble{background:var(--surface);border:3px solid var(--accent);border-radius:18px;padding:12px 16px;margin-top:14px;min-height:64px;display:flex;align-items:center;justify-content:center;font-size:16px}
+
+    /* Controls */
+    .controls{padding:6px}
+    .mood-buttons{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:12px}
+    .mood-btn{background:var(--primary);border:none;border-radius:12px;padding:12px;font-family:inherit;font-weight:700;cursor:pointer;color:#fff;transition:transform .18s ease}
+    .mood-btn:active{transform:translateY(2px)}
+    .action-btn{background:var(--secondary);border:none;border-radius:12px;padding:10px 12px;font-family:inherit;font-weight:700;cursor:pointer;color:#222}
+
+    /* breathing guide */
+    .breath-guide{width:220px;height:220px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:12px auto;position:relative}
+    .breath-circle{width:120px;height:120px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--secondary));display:flex;align-items:center;justify-content:center;color:white;font-weight:700;box-shadow:0 8px 30px rgba(0,0,0,0.12)}
+    .breathing{animation:breath 4s ease-in-out infinite}
+    @keyframes breath{0%{transform:scale(.9)}50%{transform:scale(1.18)}100%{transform:scale(.9)}}
+
+    /* right panel */
+    .panel{padding:8px}
+    .panel h3{margin-top:0}
+    .suggestions{display:flex;flex-direction:column;gap:10px;margin-top:8px}
+    .suggestion{background:#F8F8F8;border-radius:10px;padding:10px}
+
+    .stats{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .stat{background:#FFF;border-radius:10px;padding:8px;border:1px solid #EFEFEF}
+
+    .small{font-size:13px;color:#666}
+
+    /* responsive */
+    @media(max-width:900px){.container{grid-template-columns:1fr;}}
+
+    /* confetti canvas */
+    canvas.confetti{position:absolute;left:0;top:0;pointer-events:none}
+
+    /* footer */
+    .footer{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}
+
+  </style>
+ </head>
+ <body>
+  <div class="container" id="app">
+    <div class="teddy-wrap">
+      <div style="position:relative">
+        <canvas class="confetti" id="confettiCanvas"></canvas>
+        <div class="teddy" id="teddy" role="button" aria-label="Teddy bear" tabindex="0">
+          <div class="bear-face">
+            <div class="ear left"><div class="ear-inner"></div></div>
+            <div class="ear right"><div class="ear-inner"></div></div>
+            <div class="eyes"><div class="eye"></div><div class="eye"></div></div>
+            <div class="nose"></div>
+            <div class="mouth"></div>
+          </div>
+        </div>
+      </div>
+      <div class="speech-bubble" id="speech">Welcome! I'm TeddySense — how are you feeling today? 🧸</div>
+
+      <div class="controls">
+        <div class="mood-buttons" id="moodButtons">
+          <button class="mood-btn" data-mood="happy">😊 Happy</button>
+          <button class="mood-btn" data-mood="sad">😢 Sad</button>
+          <button class="mood-btn" data-mood="anxious">😰 Anxious</button>
+          <button class="mood-btn" data-mood="excited">🤩 Excited</button>
+          <button class="mood-btn" data-mood="tired">😴 Tired</button>
+          <button class="mood-btn" data-mood="stressed">😤 Stressed</button>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+          <button class="action-btn" id="actionDance">🕺 Dance</button>
+          <button class="action-btn" id="actionHug">🤗 Hug</button>
+          <button class="action-btn" id="actionSilly">🤪 Be silly</button>
+        </div>
+
+        <div style="margin-top:12px">
+          <label class="small">Set wake-up alarm: </label>
+          <input type="time" id="alarmTime" aria-label="Alarm time" value="07:00">
+          <button class="action-btn" id="setAlarmBtn">Set</button>
+          <button class="action-btn" id="cancelAlarmBtn">Cancel</button>
+        </div>
+
+        <div id="breath" class="breath-guide" style="display:none">
+          <div class="breath-circle" id="breathCircle">Breathe</div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>TeddySense — Mood Assistant</h3>
+      <p class="small">An interactive demo for a hackathon: sound, voice, breathing exercises, micro-actions, and mood logging.</p>
+
+      <div class="suggestions" id="suggestions">
+        <div class="suggestion">Tip: click a mood to begin. The bear will respond with voice + sound.</div>
+      </div>
+
+      <div style="margin-top:10px;"><strong>Micro-actions</strong></div>
+      <div class="suggestions" id="microActions">
+        <button class="action-btn" data-action="stretch">🧘 Stretch for 30s</button>
+        <button class="action-btn" data-action="water">💧 Drink water</button>
+        <button class="action-btn" data-action="walk">🚶‍♀️ Walk around</button>
+        <button class="action-btn" data-action="breath">🌬️ 4-4-4 Breath</button>
+      </div>
+
+      <div style="margin-top:12px"><strong>Mood Log & Stats</strong></div>
+      <div class="stats" id="stats">
+        <div class="stat">Interactions: <span id="statCount">0</span></div>
+        <div class="stat">Last mood: <span id="statLast">—</span></div>
+        <div class="stat">Happy: <span id="count_happy">0</span></div>
+        <div class="stat">Sad: <span id="count_sad">0</span></div>
+        <div class="stat">Anxious: <span id="count_anxious">0</span></div>
+        <div class="stat">Excited: <span id="count_excited">0</span></div>
+        <div class="stat">Tired: <span id="count_tired">0</span></div>
+        <div class="stat">Stressed: <span id="count_stressed">0</span></div>
+      </div>
+
+      <div style="margin-top:12px;display:flex;gap:8px;align-items:center" class="footer">
+        <button class="action-btn" id="downloadLog">⬇️ Download Log</button>
+        <button class="action-btn" id="clearLog">🗑️ Clear Log</button>
+        <button class="action-btn" id="toggleVoice">🔊 Voice: On</button>
+        <button class="action-btn" id="triggerConfetti">🎉 Confetti</button>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // -------------------------
+    // Utility: small logger using localStorage
+    // -------------------------
+    const LOG_KEY = 'teddysense_log_v1';
+    function loadLog(){
+      try{const raw = localStorage.getItem(LOG_KEY); return raw?JSON.parse(raw):[];}catch(e){return []}
+    }
+    function saveLog(log){localStorage.setItem(LOG_KEY, JSON.stringify(log))}
+    function appendLog(entry){const log = loadLog(); log.push(entry); saveLog(log); updateStatsUI();}
+    function clearLog(){localStorage.removeItem(LOG_KEY); updateStatsUI();}
+
+    // -------------------------
+    // WebAudio: simple chimes & lullaby & giggle & alarm
+    // -------------------------
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playTone(freq, duration=0.3, type='sine', gain=0.12){
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = type; o.frequency.value = freq;
+      g.gain.value = gain;
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(); o.stop(audioCtx.currentTime + duration);
+    }
+
+    function playHappyChime(){
+      // small arpeggio
+      const notes = [520, 660, 780];
+      notes.forEach((n,i)=>setTimeout(()=>playTone(n,0.22,'sine',0.12), i*180));
+    }
+    function playGiggle(){
+      // playful descending tones
+      const notes = [880,760,640,540];
+      notes.forEach((n,i)=>setTimeout(()=>playTone(n,0.12,'triangle',0.08), i*90));
+    }
+    function playLullaby(){
+      // gentle soft sequence
+      const notes = [440,494,523,440];
+      notes.forEach((n,i)=>setTimeout(()=>playTone(n,0.35,'sine',0.06), i*420));
+    }
+    let alarmInterval=null;
+    function playAlarmTone(){
+      if(alarmInterval) return;
+      let i=0;
+      alarmInterval = setInterval(()=>{ playTone(i%2?880:660,0.18,'square',0.16); i++; }, 400);
+    }
+    function stopAlarmTone(){ if(alarmInterval){clearInterval(alarmInterval); alarmInterval=null;} }
+
+    // -------------------------
+    // TTS
+    // -------------------------
+    let voiceEnabled = true;
+    function speak(text, opts={rate:1, pitch:1, lang: navigator.language||'en-US'}){
+      if(!voiceEnabled) return;
+      if('speechSynthesis' in window){
+        const u = new SpeechSynthesisUtterance(text);
+        u.rate = opts.rate; u.pitch = opts.pitch; u.lang = opts.lang;
+        window.speechSynthesis.cancel(); // cancel queued
+        window.speechSynthesis.speak(u);
+      }
+    }
+
+    // -------------------------
+    // Confetti (simple)
+    // -------------------------
+    const confettiCanvas = document.getElementById('confettiCanvas');
+    const confettiCtx = confettiCanvas.getContext('2d');
+    let confettiParticles = [];
+    function resizeConfetti(){ confettiCanvas.width = confettiCanvas.clientWidth; confettiCanvas.height = confettiCanvas.clientHeight; }
+    window.addEventListener('resize', resizeConfetti);
+    resizeConfetti();
+    function spawnConfetti(){
+      const colors=['#FF5C8A','#FFD166','#4AD6A8','#9AD0F5','#CBA7FF'];
+      for(let i=0;i<80;i++){ confettiParticles.push({x: Math.random()*confettiCanvas.width, y: Math.random()*-confettiCanvas.height, vx: (Math.random()-0.5)*2, vy: Math.random()*3+2, w: Math.random()*8+4, h: Math.random()*6+4, c: colors[Math.floor(Math.random()*colors.length)], r: Math.random()*360}); }
+      runConfetti();
+    }
+    let confettiTick=null;
+    function runConfetti(){ if(confettiTick) return; confettiTick = setInterval(()=>{
+      confettiCtx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height);
+      confettiParticles.forEach(p=>{ p.x+=p.vx; p.y+=p.vy; p.vy+=0.04; p.r+=2; confettiCtx.save(); confettiCtx.translate(p.x,p.y); confettiCtx.rotate(p.r*Math.PI/180); confettiCtx.fillStyle=p.c; confettiCtx.fillRect(-p.w/2,-p.h/2,p.w,p.h); confettiCtx.restore(); });
+      confettiParticles = confettiParticles.filter(p=>p.y < confettiCanvas.height+50);
+      if(confettiParticles.length===0){ clearInterval(confettiTick); confettiTick=null; }
+    }, 16); }
+
+    // -------------------------
+    // Mood system
+    // -------------------------
+    const moodMap = {
+      happy: {message: "Yay! I'm so happy you're feeling good! Let's celebrate! 🎉", action: playHappyChime, bgStart:'#FFF1C9', bgEnd:'#FFE7A7'},
+      sad: {message: "I'm sorry you're feeling sad. Here, a gentle hug and lullaby.", action: playLullaby, bgStart:'#DDE9FF', bgEnd:'#C6E0FF'},
+      anxious: {message: "I know it's tough. Let's try a calming 4-4-4 breath together.", action: ()=>{/*start breathing*/ startBreathing(); */}, bgStart:'#E9D9FF', bgEnd:'#D8C8FF'},
+      excited: {message: "Wow! Your excitement is contagious! Let's dance! 🤩", action: playGiggle, bgStart:'#FFD7F0', bgEnd:'#FFDEE9'},
+      tired: {message: "You seem tired. A soft lullaby and a breathing break might help.", action: playLullaby, bgStart:'#FFF6E6', bgEnd:'#FFEFD6'},
+      stressed: {message: "Stress can be heavy. Try a tiny break: stretch, sip water, or breathe.", action: playLullaby, bgStart:'#FFEFEF', bgEnd:'#FFDCDC'}
+    };
+
+    // bind UI
+    const speechEl = document.getElementById('speech');
+    const teddyEl = document.getElementById('teddy');
+    const moodButtons = document.querySelectorAll('.mood-btn');
+    const actionDance = document.getElementById('actionDance');
+    const actionHug = document.getElementById('actionHug');
+    const actionSilly = document.getElementById('actionSilly');
+    const breathGuide = document.getElementById('breath');
+    const breathCircle = document.getElementById('breathCircle');
+
+    moodButtons.forEach(btn=>btn.addEventListener('click', ()=>{ const mood = btn.dataset.mood; onMoodSelected(mood); }));
+
+    actionDance.addEventListener('click', ()=>{ triggerAction('dance'); });
+    actionHug.addEventListener('click', ()=>{ triggerAction('hug'); });
+    actionSilly.addEventListener('click', ()=>{ triggerAction('silly'); });
+
+    // micro actions
+    document.querySelectorAll('#microActions [data-action]').forEach(b=>b.addEventListener('click', e=>{ const act = e.currentTarget.dataset.action; handleMicroAction(act); }));
+
+    // alarm
+    let alarmTimeout=null;
+    document.getElementById('setAlarmBtn').addEventListener('click', ()=>{
+      const val = document.getElementById('alarmTime').value; setAlarmAt(val);
+    });
+    document.getElementById('cancelAlarmBtn').addEventListener('click', ()=>{ cancelAlarm(); });
+
+    document.getElementById('downloadLog').addEventListener('click', ()=>{ const data = loadLog(); const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'}); const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='teddysense_log.json'; a.click(); URL.revokeObjectURL(url); });
+    document.getElementById('clearLog').addEventListener('click', ()=>{ clearLog(); speak('Log cleared'); });
+    document.getElementById('toggleVoice').addEventListener('click', (e)=>{ voiceEnabled = !voiceEnabled; e.currentTarget.textContent = `🔊 Voice: ${voiceEnabled? 'On':'Off'}` });
+    document.getElementById('triggerConfetti').addEventListener('click', ()=>{ spawnConfetti(); });
+
+    // stats UI update
+    function updateStatsUI(){ const log = loadLog(); document.getElementById('statCount').textContent = log.length; document.getElementById('statLast').textContent = log.length? log[log.length-1].mood:'—';
+      const counts = {happy:0,sad:0,anxious:0,excited:0,tired:0,stressed:0}; log.forEach(l=>{ if(counts.hasOwnProperty(l.mood)) counts[l.mood]++; });
+      for(const k in counts){ const el = document.getElementById('count_'+k); if(el) el.textContent = counts[k]; }
+    }
+    updateStatsUI();
+
+    // on mood selected
+    function onMoodSelected(mood){
+      const cfg = moodMap[mood] || {}; const message = cfg.message || 'Thanks for telling me how you feel.';
+      setBackground(cfg.bgStart || '#fff', cfg.bgEnd || '#fff');
+      speechEl.textContent = message;
+      speak(message, {rate:1, pitch:1});
+      // play associated sound
+      try{ if(cfg.action) cfg.action(); }catch(e){}
+      // special for anxious/tired -> start breathing guide
+      if(mood==='anxious' || mood==='tired' || mood==='stressed'){
+        startBreathing();
+      } else {
+        stopBreathing();
+      }
+      // small confetti for happy/excited
+      if(mood==='happy' || mood==='excited') spawnConfetti();
+
+      // log
+      appendLog({timestamp:new Date().toISOString(), mood:mood, message:message});
+    }
+
+    // background change
+    function setBackground(a,b){ document.body.style.background = `linear-gradient(135deg, ${a} 0%, ${b} 100%)`; }
+
+    // actions
+    function triggerAction(action){ teddyEl.classList.remove('dancing','hugging','angry');
+      if(action==='dance'){ teddyEl.classList.add('dancing'); playHappyChime(); speak('Look at me dance! Wiggle wiggle!'); }
+      if(action==='hug'){ teddyEl.classList.add('hugging'); playGiggle(); speak('Here is a warm hug!'); }
+      if(action==='silly'){ playGiggle(); speak('Boop boop beep! I am silly!'); }
+      setTimeout(()=>{ document.getElementById('speech').textContent = 'How do you feel now?'; }, 1200);
+    }
+
+    // micro actions handler
+    function handleMicroAction(act){ if(act==='stretch'){ speak('Stretch your arms up and take a slow deep breath. Hold for five seconds.'); speak('Great!'); appendLog({timestamp:new Date().toISOString(), mood:'micro_action', action:'stretch'}); }
+      if(act==='water'){ speak('Take a sip of water. Hydration helps mood!'); appendLog({timestamp:new Date().toISOString(), mood:'micro_action', action:'water'}); }
+      if(act==='walk'){ speak('Stand up and walk for one to two minutes. Move your body!'); appendLog({timestamp:new Date().toISOString(), mood:'micro_action', action:'walk'}); }
+      if(act==='breath'){ startBreathing(8000); appendLog({timestamp:new Date().toISOString(), mood:'micro_action', action:'breath'}); }
+      updateStatsUI();
+    }
+
+    // breathing guide
+    let breathingInterval=null; let breathingTimeout=null;
+    function startBreathing(durationMs=12000){ stopBreathing(); breathGuide.style.display='block'; breathCircle.classList.add('breathing'); speak('Breathe in for four seconds, hold for four, breathe out for four. Let us do it together.');
+      // run for a few cycles then stop
+      breathingTimeout = setTimeout(()=>{ stopBreathing(); }, durationMs);
+    }
+    function stopBreathing(){ breathGuide.style.display='none'; breathCircle.classList.remove('breathing'); if(breathingInterval){ clearInterval(breathingInterval); breathingInterval=null } if(breathingTimeout){ clearTimeout(breathingTimeout); breathingTimeout=null }}
+
+    // alarm logic
+    function setAlarmAt(timeString){ if(!timeString){ speak('Please select a valid time'); return; }
+      const [hh,mm] = timeString.split(':').map(x=>parseInt(x,10)); const now = new Date(); const alarm = new Date(); alarm.setHours(hh,mm,0,0); if(alarm<=now) alarm.setDate(alarm.getDate()+1);
+      const ms = alarm.getTime()-now.getTime(); if(alarmTimeout) clearTimeout(alarmTimeout); alarmTimeout = setTimeout(()=>{ onAlarmTriggered(); }, ms);
+      speak(`Alarm set for ${timeString}`); appendLog({timestamp:new Date().toISOString(), mood:'alarm_set', time:timeString});
+    }
+    function cancelAlarm(){ if(alarmTimeout){ clearTimeout(alarmTimeout); alarmTimeout=null; stopAlarmTone(); speak('Alarm cancelled'); appendLog({timestamp:new Date().toISOString(), mood:'alarm_cancel'}); } }
+    function onAlarmTriggered(){ // show wake UI
+      playAlarmTone(); speak('Good morning! Time to wake up!'); appendLog({timestamp:new Date().toISOString(), mood:'alarm_triggered'});
+      // simple UI cue
+      document.getElementById('speech').textContent = '🌅 Good morning! Snooze or stop the alarm.';
+      // show basic snooze prompt via browser confirm (quick hackathon demo)
+      setTimeout(()=>{
+        const snooze = confirm('Snooze for 5 minutes? Press Cancel to stop.');
+        if(snooze){ stopAlarmTone(); const ms = 5*60*1000; alarmTimeout = setTimeout(()=>{ onAlarmTriggered(); }, ms); speak('Snoozing for five minutes'); appendLog({timestamp:new Date().toISOString(), mood:'alarm_snooze'}); }
+        else{ stopAlarmTone(); speak('Great! Have a wonderful day!'); appendLog({timestamp:new Date().toISOString(), mood:'alarm_stopped'}); }
+      }, 500);
+    }
+
+    // keyboard accessibility
+    teddyEl.addEventListener('click', ()=>{ triggerAction('silly'); });
+    teddyEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' ') triggerAction('silly'); });
+
+    // initialize: restore voice setting
+    (function init(){ updateStatsUI(); // warm greeting
+      speak('Hello! I am TeddySense, your emotional support buddy. Click a mood to start.');
+    })();
+
+  </script>
+ </body>
+</html>
